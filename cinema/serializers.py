@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from cinema.models import Movie, Actor, Genre, CinemaHall
 
@@ -26,7 +27,10 @@ class ActorSerializer(serializers.Serializer):
 
 class GenreSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(max_length=100)
+    name = serializers.CharField(
+        max_length=100,
+        validators=[UniqueValidator(queryset=Genre.objects.all())]
+    )
 
     def create(self, validated_data):
         return Genre.objects.create(**validated_data)
@@ -62,19 +66,36 @@ class MovieSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     description = serializers.CharField()
     duration = serializers.IntegerField()
-    actors = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    genres = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    actors = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Actor.objects.all()
+    )
+    genres = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Genre.objects.all()
+    )
 
     def create(self, validated_data):
-        return Movie.objects.create(**validated_data)
+        actors_data = validated_data.pop("actors", [])
+        genres_data = validated_data.pop("genres", [])
+        movie = Movie.objects.create(**validated_data)
+        movie.actors.set(actors_data)
+        movie.genres.set(genres_data)
+        return movie
 
     def update(self, instance, validated_data):
+        actors_data = validated_data.pop("actors", None)
+        genres_data = validated_data.pop("genres", None)
+
         instance.title = validated_data.get("title", instance.title)
         instance.description = validated_data.get(
-            "description", instance.description
+            "description",
+            instance.description
         )
         instance.duration = validated_data.get("duration", instance.duration)
-
         instance.save()
+
+        if actors_data is not None:
+            instance.actors.set(actors_data)
+        if genres_data is not None:
+            instance.genres.set(genres_data)
 
         return instance

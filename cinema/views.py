@@ -5,7 +5,7 @@ from rest_framework.mixins import (
     UpdateModelMixin,
     DestroyModelMixin,
     ListModelMixin,
-    CreateModelMixin
+    CreateModelMixin,
 )
 from rest_framework.response import Response
 from rest_framework import status, mixins, viewsets
@@ -19,7 +19,7 @@ from cinema.serializers import (
     MovieSerializer,
     ActorSerializer,
     GenreSerializer,
-    CinemaHallSerializer
+    CinemaHallSerializer,
 )
 
 
@@ -63,7 +63,7 @@ class GenreDetail(
 
     def patch(self, request, pk):  #
         genre = self.get_object(pk)
-        serializer = GenreSerializer(genre, data=request.data)
+        serializer = GenreSerializer(genre, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
